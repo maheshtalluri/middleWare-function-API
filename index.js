@@ -26,7 +26,6 @@ const initializeDBAndServer = async () => {
 initializeDBAndServer();
 
 const authenticateToken = (request, response, next) => {
-    
   let jwtToken;
   const authHeader = request.headers["authorization"];
   if (authHeader !== undefined) {
@@ -40,40 +39,39 @@ const authenticateToken = (request, response, next) => {
       if (error) {
         response.send("Invalid Access Token");
       } else {
-          request.username = payload.username
-          next()
+        request.username = payload.username;
+        next();
       }
     });
   }
-}
+};
+
+// GET user profile API
+
+app.get("/profile/", authenticateToken, async (request, response) => {
+  const { username } = request;
+  console.log(username);
+  const selectUserQuery = `SELECT * FROM user WHERE username = "${username}";`;
+  const dbUser = await db.get(selectUserQuery);
+  response.send(dbUser);
+});
 
 //Get Books API
 app.get("/books/", authenticateToken, async (request, response) => {
-        const getBooksQuery = `
+  const getBooksQuery = `
             SELECT
               *
             FROM
              book
             ORDER BY
              book_id;`;
-        const booksArray = await db.all(getBooksQuery);
-        response.send(booksArray);
-
+  const booksArray = await db.all(getBooksQuery);
+  response.send(booksArray);
 });
 
-// GET Profile API
-
-app.get("/profile/", authenticateToken, async (request, response) => {
-    const {username} = request;
-    console.log(username);
-    const selectUserQuery = `SELECT * FROM user WHERE username = "${username}";`;
-    const dbUser = await db.get(selectUserQuery);
-    response.send(db)
-})
-
 //Get Book API
-app.get("/books/:bookId/", async(request, response) => {
-      let jwtToken;
+app.get("/books/:bookId/", authenticateToken, async (request, response) => {
+  let jwtToken;
   const authHeader = request.headers["authorization"];
   if (authHeader !== undefined) {
     jwtToken = authHeader.split(" ")[1];
@@ -86,8 +84,8 @@ app.get("/books/:bookId/", async(request, response) => {
       if (error) {
         response.send("Invalid Access Token");
       } else {
-    const { bookId } = request.params;
-    const getBookQuery = `
+        const { bookId } = request.params;
+        const getBookQuery = `
       SELECT
        *
       FROM
@@ -95,15 +93,15 @@ app.get("/books/:bookId/", async(request, response) => {
       WHERE
        book_id = ${bookId};
     `;
-    const book = await db.get(getBookQuery);
-    response.send(book);
- }
-
+        const book = await db.get(getBookQuery);
+        response.send(book);
+      }
+    });
+  }
 });
 
-
 //User Register API
-app.post("/users/", async (request, response) => {
+app.post("/users/", authenticateToken, async (request, response) => {
   const { username, name, password, gender, location } = request.body;
   const hashedPassword = await bcrypt.hash(request.body.password, 10);
   const selectUserQuery = `SELECT * FROM user WHERE username = '${username}'`;
